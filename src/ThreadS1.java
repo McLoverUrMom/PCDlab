@@ -18,15 +18,15 @@ class ThreadS1 implements Runnable {
                 index++;
             }
         }
-        int firstEvenNumber = 0;
+
         int sum = 0;
-        for (int i = 0; i < evenNumbers.length; i++){
-            sum += (firstEvenNumber + ( firstEvenNumber+2));
+        for (int i = 0; i < index - 1 ; i += 2){
+            sum +=  evenNumbers[i] + evenNumbers[i+1];
         }
 
         for (int i = 0; i < evenNumbers.length; i++){
-            System.out.print("Четные числа: " + evenNumbers[i]);
+            System.out.println("Четные числа: " + evenNumbers[i]);
         }
-        System.out.println("Выполненное действие первого потока" + sum);
+        System.out.println("Выполненное действие первого потока: " + sum);
     }
 }
