@@ -14,5 +14,10 @@ public class Main {
         for (int i = 0; i < 100; i++) {
             System.out.println("Случайно сгенерированные числа:" + mas[i]);
         }
+        Thread threads1 = new Thread(new ThreadS1(mas));
+        threads1.start();
+
+
+
     }
 }
