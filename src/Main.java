@@ -14,10 +14,18 @@ public class Main {
         for (int i = 0; i < 100; i++) {
             System.out.println("Случайно сгенерированные числа:" + mas[i]);
         }
-        Thread threads1 = new Thread(new ThreadS1(mas));
-        threads1.start();
-
-
-
+        switch (choice){
+                case 1:
+                    thread = new Thread(new ThreadS1(mas));
+                    thread = new Thread(new ThreadS2(mas));
+                    ThreadS1.start();
+                    ThreadS2.start();
+                    break;
+                case 2:
+                    thread = new Thread(new ThreadL1(mas));
+                    break;
+                default:
+                    System.out.println("Нет такого варианта")
+        }
     }
 }
