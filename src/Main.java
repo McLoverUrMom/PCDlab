@@ -26,9 +26,9 @@ public class Main {
                     break;
                 case 2:
                    // Thread thread 3 = new Thread(new ThreadL1(mas));
-                    break;
-                default:
-                    System.out.println("Нет такого варианта");
+                   // break;
+                //default:
+                  //  System.out.println("Нет такого варианта");
         }
     }
 }
