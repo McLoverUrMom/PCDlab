@@ -26,11 +26,11 @@ public class Main {
                     break;
                 case 2:
                     Thread thread3 = new Thread(new ThreadL1(mas));
-                    //Thread thread4 = new Thread(new ThreadL2(mas));
+                    Thread thread4 = new Thread(new ThreadL2(mas));
                     thread3.start();
-                    //thread4.start();
-                //default:
-                  //  System.out.println("Нет такого варианта");
+                    thread4.start();
+                default:
+                    System.out.println("Нет такого варианта");
         }
     }
 }
