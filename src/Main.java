@@ -16,6 +16,7 @@ public class Main {
         for (int i = 0; i < 100; i++) {
             System.out.println("Случайно сгенерированные числа:" + mas[i]);
         }
+
         int choice = sc.nextInt();
         switch(choice){
                 case 1:
@@ -23,14 +24,31 @@ public class Main {
                    Thread thread2 = new Thread(new ThreadS2(mas));
                     thread1.start();
                     thread2.start();
+
                     break;
                 case 2:
                     Thread thread3 = new Thread(new ThreadL1(mas));
                     thread3.start();
                     Thread thread4 = new Thread(new ThreadL2(mas));
                     thread4.start();
+
+                    break;
                 default:
                     System.out.println("Нет такого варианта");
         }
+
+        String message = " Работу выполнили Лучицкий и Спринчан";
+        for (char ch : message.toCharArray()) {
+            System.out.print(ch);
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("\nПоток был прерван");
+                break;
+            }
+        }
+        System.out.println();
+
     }
 }
