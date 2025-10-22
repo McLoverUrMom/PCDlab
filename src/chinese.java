@@ -3,10 +3,9 @@ import java.util.LinkedList;
 public class chinese {
     public static void chinese_start() {
      ThreadGroup main = new ThreadGroup("main");
-     Thread.currentThread().getThreadGroup();
      Thread.currentThread().getThreadGroup().list();
-      LinkedList<Thread> threads = new LinkedList<>();
-      ThreadGroup GN = new ThreadGroup(main, "GN");
+     LinkedList<Thread> threads = new LinkedList<>();
+     ThreadGroup GN = new ThreadGroup(main, "GN");
 
       ThreadGroup GH = new ThreadGroup(GN, "GH");
 
@@ -15,35 +14,35 @@ public class chinese {
       threads.add(Tha);
 
       Thread Thb = new Thread(GH, new thred(), "Thb");
-      Tha.setPriority(3);
+      Thb.setPriority(3);
       threads.add(Thb);
 
       Thread Thc = new Thread(GH, new thred(), "Thc");
-      Tha.setPriority(6);
+      Thc.setPriority(6);
       threads.add(Thc);
 
       Thread Thd = new Thread(GH, new thred(), "Thd");
-      Tha.setPriority(3);
+      Thd.setPriority(3);
       threads.add(Thd);
 
       GH.list();
 
       Thread ThA = new Thread(GN, new thred(), "ThA");
-      Tha.setPriority(3);
+      ThA.setPriority(3);
       threads.add(ThA);
 
       ThreadGroup GM = new ThreadGroup(main, "GM");
 
       Thread Th1 = new Thread(GM, new thred(), "Th1");
-      Tha.setPriority(2);
+      Th1.setPriority(2);
       threads.add(Th1);
 
       Thread Th2 = new Thread(GM, new thred(), "Th2");
-      Tha.setPriority(3);
+      Th2.setPriority(3);
       threads.add(Th2);
 
       Thread Th3 = new Thread(GM, new thred(), "Th3");
-      Tha.setPriority(3);
+      Th3.setPriority(3);
       threads.add(Th3);
 
       GM.list();
