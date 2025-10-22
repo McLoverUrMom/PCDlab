@@ -30,7 +30,7 @@ public class chinese {
 
       Thread ThA = new Thread(GN, new thred(), "ThA");
       Tha.setPriority(3);
-      threads.add(Thd);
+      threads.add(ThA);
 
       ThreadGroup GM = new ThreadGroup(main, "GM");
 
