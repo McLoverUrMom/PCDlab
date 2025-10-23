@@ -27,7 +27,7 @@ public class chinese {
 
       GH.list();
 
-      Thread ThA = new Thread(GN, new thred(), "ThA");
+      Thread ThA = new Thread(main, new thred(), "ThA");
       ThA.setPriority(3);
       threads.add(ThA);
 
@@ -47,12 +47,12 @@ public class chinese {
 
       GM.list();
 
-      Thread Th1_main = new Thread(new thred(), "Th1");
+      Thread Th1_main = new Thread(main, new thred(), "Th1");
       Th1_main.setPriority(8);
       threads.add(Th1_main);
 
-      Thread Th2_main = new Thread(new thred(), "Th2");
-      Th1_main.setPriority(3);
+      Thread Th2_main = new Thread(main, new thred(), "Th2");
+      Th2_main.setPriority(3);
       threads.add(Th2_main);
 
       for (int i = 0; i < threads.toArray().length; i++) {
