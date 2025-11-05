@@ -1,0 +1,142 @@
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.List;
+
+
+public class Main {
+    static volatile boolean flagTh1IsDone = false;
+    static volatile boolean flagTh2IsDone = false;
+    static volatile boolean flagTh3IsDone = false;
+    static volatile boolean flagTh4IsDone = false;
+
+    static List<Integer> A;
+
+    static final Object PRINT_LOCK = new Object();
+
+    static void printSlow(String s) {
+        synchronized (PRINT_LOCK) {
+            for (char c : s.toCharArray()) {
+                System.out.print(c);
+                long t0 = System.currentTimeMillis();
+                while (System.currentTimeMillis() - t0 < 100) { /* busy-wait */ }
+            }
+            System.out.println();
+        }
+    }
+    public static void main(String[] args) {
+        System.out.println("--------- Начало программы---------");
+        System.out.println("Массив генерируется, числа генерируються");
+
+        Random randomMoiDom = new Random();
+        int[] B = new int[200];  // создание массива
+        System.out.println(" Массив с генерацией случайных чисел создан");
+
+        for (int i = 0; i < 200; i++ ){
+            B[i] = randomMoiDom.nextInt(201); // заполнение рандомными числами от 0 до 200
+        }
+
+        // вывод массива В
+        System.out.print("Массив B ");
+        for (int num : B){
+            System.out.print(num + " ");
+        }
+        System.out.println("\n");
+
+        // вывод массива A
+        A = new ArrayList<>();
+
+        for (int num : B){
+            if (num % 2 == 0){
+                A.add(num);
+            }
+        }
+
+        flagTh1IsDone = false;
+        flagTh2IsDone = false;
+        flagTh3IsDone = false;
+        flagTh4IsDone = false;
+
+        System.out.println(" Флаги инициализированы: все = false ");
+
+        Th1 th1 = new Th1();
+        th1.start();
+
+        Th2 th2 = new Th2();
+        th2.start();
+
+        Th3 th3 = new Th3();
+        th3.start();
+
+        Th4 th4 = new Th4();
+        th4.start();
+
+
+    }
+
+    public static class Th1 extends Thread {
+        @Override
+        public void run() {
+            System.out.println(" Th1: Начало задачи 1(подсчет по два с начала)");
+                for (int i = 0 ; i <= A.size() - 4; i+= 4 ){
+                    int pair1 = A.get(i) + A.get(i + 1);
+                    int pair2 = A.get(i + 2) + A.get( i + 3);
+                    int result = pair1 + pair2;
+                    System.out.println(" Th1: ("+ A.get(i) + "+" + A.get(i + 1) +") + ("+ A.get(i + 2) + "+" + A.get(i + 3) +") = "+ result );
+            }
+            printSlow("Фамилия Спринчан");
+            flagTh1IsDone = true;
+            System.out.println("Th1: первая задача выполнена ");
+
+        }
+    }
+
+    public static class Th2 extends Thread {
+       @Override
+        public void run() {
+           while (!flagTh1IsDone){}
+           System.out.println(" Th2: Начало задачи 2(подсчет по два с конца)");
+                for (int i = A.size() - 1  ; i >= 3; i-= 4 ){
+                    int pair1 = A.get(i) + A.get(i - 1);
+                    int pair2 = A.get(i - 2) + A.get( i - 3);
+                    int result = pair1 + pair2;
+                    System.out.println(" Th2: ("+ A.get(i) + "+" + A.get(i - 1) +") + ("+ A.get(i - 2) + "+" + A.get(i - 3) +") = "+ result );
+                }
+                printSlow("Имя: Даниил");
+                flagTh2IsDone = true;
+                System.out.println("Th2: вторая задача выполнена ");
+
+       }
+    }
+
+    public static class Th3 extends Thread {
+        @Override
+        public void run() {
+            while (!flagTh2IsDone){}
+            System.out.println(" Th3: Начало задачи 3(вывод интервала с 100 по 500)");
+            for (int i = 100; i <= 500; i++){
+                System.out.println(i);
+            }
+            printSlow(" Предмет:Programarea concurentă și distribuită");
+            flagTh3IsDone = true;
+            System.out.println("Th3: третья задача выполнена ");
+
+        }
+    }
+
+    public static class Th4 extends Thread {
+        @Override
+        public void run() {
+            while (!flagTh3IsDone){}
+            System.out.println(" Th3: Начало задачи 4(вывод интервала с 300 по 700)");
+            for (int i = 700; i >= 300; i--){
+                System.out.println(i);
+            }
+            printSlow(" Группа: CR-233");
+            flagTh4IsDone = true;
+            System.out.println("Th4: четвёртая задача выполнена ");
+
+        }
+    }
+
+
+}
