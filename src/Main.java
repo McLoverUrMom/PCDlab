@@ -1,17 +1,19 @@
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 
 public class Main {
-    static volatile boolean flagTh1IsDone = false;
-    static volatile boolean flagTh2IsDone = false;
-    static volatile boolean flagTh3IsDone = false;
-    static volatile boolean flagTh4IsDone = false;
+
 
     static List<Integer> A;
 
     static final Object PRINT_LOCK = new Object();
+
+    static CountDownLatch latch1 = new CountDownLatch(1);
+    static CountDownLatch latch2 = new CountDownLatch(1);
+    static CountDownLatch latch3 = new CountDownLatch(1);
 
     static void printSlow(String s) {
         synchronized (PRINT_LOCK) {
@@ -53,13 +55,6 @@ public class Main {
             }
         }
 
-        flagTh1IsDone = false;
-        flagTh2IsDone = false;
-        flagTh3IsDone = false;
-        flagTh4IsDone = false;
-
-        System.out.println(" Флаги инициализированы: все = false ");
-
 
         Th1 th1 = new Th1();
         th1.setName("Th1");
@@ -81,7 +76,6 @@ public class Main {
 
     }
 
-
     public static class Th1 extends Thread {
         public Th1() {super("Th1");}
         @Override
@@ -93,9 +87,10 @@ public class Main {
                     int result = pair1 + pair2;
                     System.out.println(" Th1: ("+ A.get(i) + "+" + A.get(i + 1) +") + ("+ A.get(i + 2) + "+" + A.get(i + 3) +") = "+ result );
             }
-                flagTh1IsDone = true;
             System.out.println("Th1: первая задача выполнена ");
+            latch1.countDown();
             printSlow(" Фамилия: Спринчан");
+
         }
     }
 
@@ -103,17 +98,20 @@ public class Main {
         public Th2() {super("Th2");}
         @Override
         public void run() {
-           while (!flagTh1IsDone){}
+           try {
+               latch1.await();
+           } catch (InterruptedException e) {}
            System.out.println(" Th2: Начало задачи 2(подсчет по два с конца)");
-                for (int i = A.size() - 1  ; i >= 3; i-= 4 ){
+
+           for (int i = A.size() - 1  ; i >= 3; i-= 4 ){
                     int pair1 = A.get(i) + A.get(i - 1);
                     int pair2 = A.get(i - 2) + A.get( i - 3);
                     int result = pair1 + pair2;
                     System.out.println(" Th2: ("+ A.get(i) + "+" + A.get(i - 1) +") + ("+ A.get(i - 2) + "+" + A.get(i - 3) +") = "+ result );
                 }
-                flagTh2IsDone = true;
                 System.out.println("Th2: вторая задача выполнена ");
-            printSlow( "Имя: Даниил");
+                latch2.countDown();
+                printSlow( "Имя: Даниил");
        }
     }
 
@@ -121,14 +119,16 @@ public class Main {
         public Th3() {super("Th3");}
         @Override
         public void run() {
-            while (!flagTh2IsDone){}
+            try {
+                latch2.await();
+            } catch (InterruptedException e) {}
+
             System.out.println(" Th3: Начало задачи 3(вывод интервала с 100 по 500)");
             for (int i = 100; i <= 500; i++){
                 System.out.println(i);
             }
-
-            flagTh3IsDone = true;
             System.out.println("Th3: третья задача выполнена ");
+            latch3.countDown();
             printSlow( "Предмет: Programarea concurentă și distribuită");
         }
     }
@@ -137,12 +137,14 @@ public class Main {
         public Th4() {super("Th4");}
         @Override
         public void run() {
-            while (!flagTh3IsDone){}
+            try {
+                latch3.await();
+            } catch (InterruptedException e) {}
+
             System.out.println(" Th3: Начало задачи 4(вывод интервала с 300 по 700)");
             for (int i = 700; i >= 300; i--){
                 System.out.println(i);
             }
-            flagTh4IsDone = true;
             System.out.println("Th4: четвёртая задача выполнена ");
             printSlow( "Группа: CR-233");
         }
