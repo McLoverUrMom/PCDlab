@@ -15,12 +15,14 @@ public class Main {
 
     static void printSlow(String s) {
         synchronized (PRINT_LOCK) {
+            System.out.print(Thread.currentThread().getName() + ": ");
             for (char c : s.toCharArray()) {
                 System.out.print(c);
-                long t0 = System.currentTimeMillis();
-                while (System.currentTimeMillis() - t0 < 100) { /* busy-wait */ }
+                long start = System.currentTimeMillis();
+                while (System.currentTimeMillis() - start < 100) { /* busy-wait */ }
             }
             System.out.println();
+            System.out.flush();
         }
     }
     public static void main(String[] args) {
@@ -58,22 +60,30 @@ public class Main {
 
         System.out.println(" Флаги инициализированы: все = false ");
 
+
         Th1 th1 = new Th1();
+        th1.setName("Th1");
         th1.start();
 
         Th2 th2 = new Th2();
+        th2.setName("Th2");
         th2.start();
 
         Th3 th3 = new Th3();
+        th3.setName("Th3");
         th3.start();
 
         Th4 th4 = new Th4();
+        th4.setName("Th4");
         th4.start();
+
 
 
     }
 
+
     public static class Th1 extends Thread {
+        public Th1() {super("Th1");}
         @Override
         public void run() {
             System.out.println(" Th1: Начало задачи 1(подсчет по два с начала)");
@@ -83,15 +93,15 @@ public class Main {
                     int result = pair1 + pair2;
                     System.out.println(" Th1: ("+ A.get(i) + "+" + A.get(i + 1) +") + ("+ A.get(i + 2) + "+" + A.get(i + 3) +") = "+ result );
             }
-            printSlow("Фамилия Спринчан");
-            flagTh1IsDone = true;
+                flagTh1IsDone = true;
             System.out.println("Th1: первая задача выполнена ");
-
+            printSlow(" Фамилия: Спринчан");
         }
     }
 
     public static class Th2 extends Thread {
-       @Override
+        public Th2() {super("Th2");}
+        @Override
         public void run() {
            while (!flagTh1IsDone){}
            System.out.println(" Th2: Начало задачи 2(подсчет по два с конца)");
@@ -101,14 +111,14 @@ public class Main {
                     int result = pair1 + pair2;
                     System.out.println(" Th2: ("+ A.get(i) + "+" + A.get(i - 1) +") + ("+ A.get(i - 2) + "+" + A.get(i - 3) +") = "+ result );
                 }
-                printSlow("Имя: Даниил");
                 flagTh2IsDone = true;
                 System.out.println("Th2: вторая задача выполнена ");
-
+            printSlow( "Имя: Даниил");
        }
     }
 
     public static class Th3 extends Thread {
+        public Th3() {super("Th3");}
         @Override
         public void run() {
             while (!flagTh2IsDone){}
@@ -116,14 +126,15 @@ public class Main {
             for (int i = 100; i <= 500; i++){
                 System.out.println(i);
             }
-            printSlow(" Предмет:Programarea concurentă și distribuită");
+
             flagTh3IsDone = true;
             System.out.println("Th3: третья задача выполнена ");
-
+            printSlow( "Предмет: Programarea concurentă și distribuită");
         }
     }
 
     public static class Th4 extends Thread {
+        public Th4() {super("Th4");}
         @Override
         public void run() {
             while (!flagTh3IsDone){}
@@ -131,12 +142,14 @@ public class Main {
             for (int i = 700; i >= 300; i--){
                 System.out.println(i);
             }
-            printSlow(" Группа: CR-233");
             flagTh4IsDone = true;
             System.out.println("Th4: четвёртая задача выполнена ");
-
+            printSlow( "Группа: CR-233");
         }
     }
+
+
+
 
 
 }
