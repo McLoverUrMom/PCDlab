@@ -11,9 +11,9 @@ public class Main {
 
     static final Object PRINT_LOCK = new Object();
 
-    static CountDownLatch latch1 = new CountDownLatch(1);
-    static CountDownLatch latch2 = new CountDownLatch(1);
-    static CountDownLatch latch3 = new CountDownLatch(1);
+    static CountDownLatch latch1 = new CountDownLatch(4);
+    //static CountDownLatch latch2 = new CountDownLatch(1);
+    //static CountDownLatch latch3 = new CountDownLatch(1);
 
     static void printSlow(String s) {
         synchronized (PRINT_LOCK) {
@@ -89,6 +89,10 @@ public class Main {
             }
             System.out.println("Th1: первая задача выполнена ");
             latch1.countDown();
+            try {
+                latch1.await();
+            } catch (InterruptedException e) {}
+
             printSlow(" Фамилия: Спринчан");
 
         }
@@ -98,9 +102,7 @@ public class Main {
         public Th2() {super("Th2");}
         @Override
         public void run() {
-           try {
-               latch1.await();
-           } catch (InterruptedException e) {}
+
            System.out.println(" Th2: Начало задачи 2(подсчет по два с конца)");
 
            for (int i = A.size() - 1  ; i >= 3; i-= 4 ){
@@ -110,7 +112,11 @@ public class Main {
                     System.out.println(" Th2: ("+ A.get(i) + "+" + A.get(i - 1) +") + ("+ A.get(i - 2) + "+" + A.get(i - 3) +") = "+ result );
                 }
                 System.out.println("Th2: вторая задача выполнена ");
-                latch2.countDown();
+            latch1.countDown();
+            try {
+                latch1.await();
+            } catch (InterruptedException e) {}
+
                 printSlow( "Имя: Даниил");
        }
     }
@@ -119,16 +125,18 @@ public class Main {
         public Th3() {super("Th3");}
         @Override
         public void run() {
-            try {
-                latch2.await();
-            } catch (InterruptedException e) {}
+
 
             System.out.println(" Th3: Начало задачи 3(вывод интервала с 100 по 500)");
             for (int i = 100; i <= 500; i++){
                 System.out.println(i);
             }
             System.out.println("Th3: третья задача выполнена ");
-            latch3.countDown();
+            latch1.countDown();
+            try {
+                latch1.await();
+            } catch (InterruptedException e) {}
+
             printSlow( "Предмет: Programarea concurentă și distribuită");
         }
     }
@@ -137,15 +145,18 @@ public class Main {
         public Th4() {super("Th4");}
         @Override
         public void run() {
-            try {
-                latch3.await();
-            } catch (InterruptedException e) {}
+
 
             System.out.println(" Th3: Начало задачи 4(вывод интервала с 300 по 700)");
             for (int i = 700; i >= 300; i--){
                 System.out.println(i);
             }
             System.out.println("Th4: четвёртая задача выполнена ");
+            latch1.countDown();
+            try {
+                latch1.await();
+            } catch (InterruptedException e) {}
+
             printSlow( "Группа: CR-233");
         }
     }
