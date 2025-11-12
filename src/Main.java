@@ -1,6 +1,7 @@
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
 public class Main {
@@ -14,11 +15,13 @@ public class Main {
     private static final Semaphore semTh4 = new Semaphore(0);
     private static final Semaphore semTh1 = new Semaphore(0);
     private static final Semaphore semTh3 = new Semaphore(0);
+    
+    private static final CountDownLatch doneLatch = new CountDownLatch(4);
 
     public static void main(String[] args) throws InterruptedException {
 
         List<Integer> rangeA = buildRange(11, 548);    // для Th1 и Th2
-        List<Integer> rangeB = buildRange(1234, 678);  // для Th3 и Th4
+        List<Integer> rangeB = buildRange(1234, 678);  // для Th3 и Th4 (убывающий)
 
         Thread th1 = new Thread(() -> task1(rangeA), "Th1");
         Thread th2 = new Thread(() -> task2(rangeA), "Th2");
@@ -29,11 +32,8 @@ public class Main {
         th2.start();
         th3.start();
         th4.start();
-
-        th1.join();
-        th2.join();
-        th3.join();
-        th4.join();
+        
+        doneLatch.await();
 
         System.out.println("\nВсе потоки завершены.");
     }
@@ -70,6 +70,8 @@ public class Main {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } finally {
+            doneLatch.countDown(); // сигнализируем о завершении
         }
     }
 
@@ -97,6 +99,8 @@ public class Main {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } finally {
+            doneLatch.countDown(); // сигнализируем о завершении
         }
     }
 
@@ -117,6 +121,8 @@ public class Main {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } finally {
+            doneLatch.countDown(); // сигнализируем о завершении
         }
     }
 
@@ -139,6 +145,8 @@ public class Main {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } finally {
+            doneLatch.countDown(); // сигнализируем о завершении
         }
     }
 
