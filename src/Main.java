@@ -106,7 +106,7 @@ class Producer extends Thread{
     }
     @Override
     public void run() {
-        String[] words ={"aboba","programare","java","battlefield","playstation"};
+        String[] words ={"aboba","congo","java","laupa","pupa"};
         while(true){
             String a = words[(int)(Math.random()* words.length)];
             String b = words[(int)(Math.random()* words.length)];
