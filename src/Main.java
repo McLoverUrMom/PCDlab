@@ -74,7 +74,7 @@ class Store {
     }
 
     public synchronized void put(String str,String a, String b) {
-        while (stockList.size()>=10) {
+        while (stockList.size()>=10) {  System.out.println(">>> " + str + " хочет положить, но склад ПОЛОН (" + stockList.size() + "). Ждёт...");
             try {
                 wait();
             } catch (InterruptedException e) { }
