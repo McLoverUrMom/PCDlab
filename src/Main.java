@@ -55,13 +55,15 @@ class Store {
             } catch (InterruptedException e) {}
         }
 
+        // Берём последнее слово со склада
         String item = stockList.getLast();
         stockList.remove(stockList.size() - 1);
 
-        String vowels = item.replaceAll("(?i)[^aeiouаyеёиоуыэюя]", "");
-        System.out.println(str + " взял со склада строку: " + item);
+        // Извлекаем ГЛАСНЫЕ
+        String vowelsOnly = item.replaceAll("(?i)[^aeiouаеёиоуыэюя]", "");
 
-        System.out.println(str + " извлёк гласные: " + vowels);
+        System.out.println(str + " взял со склада слово: " + item);
+        System.out.println(str + " взял только гласные: " + vowelsOnly);
 
         if (!stockList.isEmpty()) {
             System.out.print("На складе имеется " + stockList.size() + " единиц -> ");
@@ -70,8 +72,10 @@ class Store {
         } else {
             System.out.println("Склад пуст");
         }
+
         notifyAll();
     }
+
 
     public synchronized void put(String str,String a, String b) {
         while (stockList.size()>=10) {  System.out.println(">>> " + str + " хочет положить, но склад ПОЛОН (" + stockList.size() + "). Ждёт...");
