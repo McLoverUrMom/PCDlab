@@ -92,8 +92,8 @@ public class Main {
                     log("[P" + id + "] → сделал: " + item +
                             " | store: " + buffer.size() + "/" + BUFFER_CAPACITY);
 
-                    // 🔥 задержка приготовления блюда
-                    Thread.sleep(120 + rnd.nextInt(80)); // 120–200 ms
+
+                    Thread.sleep(120 + rnd.nextInt(80));
                 }
 
             } catch (InterruptedException e) {
@@ -131,7 +131,7 @@ public class Main {
                             " | total: " + consumed +
                             " | store: " + buffer.size());
 
-                    // 🔥 Consumer ест быстро
+
                     Thread.sleep(40 + rnd.nextInt(30)); // 40–70 ms
                 }
 
