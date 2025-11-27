@@ -11,10 +11,10 @@ public class Main {
     static final int Z = 50;    // сколько всего произвести и потребить
     static final int D = 10;    // размер склада
 
-    // гласные
+
     static final char[] VOWELS = {'a', 'e', 'i', 'o', 'u', 'y'};
 
-    // ---------------------   СКЛАД   ---------------------
+
     static class Depot {
         private final Deque<Character> buffer = new ArrayDeque<>(D);
         private final ReentrantLock lock = new ReentrantLock(true);
@@ -28,7 +28,7 @@ public class Main {
         private final Random rnd = new Random();
         volatile boolean done = false;
 
-        // Производство
+
         void produce(String name) throws InterruptedException {
             lock.lock();
             try {
@@ -57,7 +57,7 @@ public class Main {
             }
         }
 
-        // Потребление
+
         void consume(String name) throws InterruptedException {
             lock.lock();
             try {
@@ -83,7 +83,7 @@ public class Main {
         }
     }
 
-    // --------------------- ПРОИЗВОДИТЕЛИ ---------------------
+
     static class Producer extends Thread {
         private final Depot depot;
 
@@ -103,7 +103,7 @@ public class Main {
         }
     }
 
-    // --------------------- ПОТРЕБИТЕЛИ -----------------------
+
     static class Consumer extends Thread {
         private final Depot depot;
 
@@ -123,7 +123,7 @@ public class Main {
         }
     }
 
-    // --------------------- MAIN ---------------------
+
     public static void main(String[] args) throws InterruptedException {
 
         Depot depot = new Depot();
