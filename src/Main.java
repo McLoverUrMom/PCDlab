@@ -1,199 +1,165 @@
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.ArrayList;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
 
-    // Параметры варианта
-    private static final int X = 10; // producers
-    private static final int Y = 3;  // consumers
-    private static final int Z = 3;  // each consumer must consume Z items
-    private static final int D = 5;  // buffer capacity
-    private static final int F = 2;  // each producer produces F items at once
+    public static final int X = 10;
+    public static final int Y = 3;
+    public static final int Z = 3;
+    public static final int D = 5;
 
     public static void main(String[] args) throws InterruptedException {
-        System.out.printf("Вариант: X=%d, Y=%d, Z=%d, D=%d, F=%d (объекты: нечётные числа)%n",
-                X, Y, Z, D, F);
 
-        // сколько всего нужно всем потребителям (чтобы не перепроизводить)
-        AtomicInteger totalNeeded = new AtomicInteger(Y * Z);
-        AtomicInteger producersAlive = new AtomicInteger(X);
+        Store store = new Store();
 
-        Store store = new Store(D);
+        Thread p1 = new Thread(new Producer(store), "Производитель №1");
+        p1.setDaemon(true);
+        Thread p2 = new Thread(new Producer(store), "Производитель №2");
+        p2.setDaemon(true);
+        Thread p3 = new Thread(new Producer(store), "Производитель №3");
+        p3.setDaemon(true);
+        Thread p4 = new Thread(new Producer(store), "Производитель №4");
+        p4.setDaemon(true);
+        Thread p5 = new Thread(new Producer(store), "Производитель №5");
+        p5.setDaemon(true);
+        Thread p6 = new Thread(new Producer(store), "Производитель №6");
+        p6.setDaemon(true);
+        Thread p7 = new Thread(new Producer(store), "Производитель №7");
+        p7.setDaemon(true);
+        Thread p8 = new Thread(new Producer(store), "Производитель №8");
+        p8.setDaemon(true);
+        Thread p9 = new Thread(new Producer(store), "Производитель №9");
+        p9.setDaemon(true);
+        Thread p10 = new Thread(new Producer(store), "Производитель №10");
+        p10.setDaemon(true);
 
-        Thread[] producers = new Thread[X];
-        Thread[] consumers = new Thread[Y];
+        Thread c1 = new Thread(new Consumer(store), "Потребитель №1");
+        Thread c2 = new Thread(new Consumer(store), "Потребитель №2");
+        Thread c3 = new Thread(new Consumer(store), "Потребитель №3");
 
-        // создаём производителей
-        for (int i = 0; i < X; i++) {
-            String name = "Producer-" + (i + 1);
-            producers[i] = new Thread(new Producer(name, store, F, totalNeeded, producersAlive), name);
+        p1.start();
+        p2.start();
+        p3.start();
+        p4.start();
+        p5.start();
+        p6.start();
+        p7.start();
+        p8.start();
+        p9.start();
+        p10.start();
+
+        c1.start();
+        c2.start();
+        c3.start();
+
+        while (c1.isAlive() || c2.isAlive() || c3.isAlive()) {
+            Thread.sleep(50);
         }
 
-        // создаём потребителей
-        for (int i = 0; i < Y; i++) {
-            String name = "Consumer-" + (i + 1);
-            consumers[i] = new Thread(new Consumer(name, store, Z, producersAlive, totalNeeded), name);
-        }
-
-        // стартуем производителей и потребителей
-        for (Thread p : producers) p.start();
-        for (Thread c : consumers) c.start();
-
-        // ждём завершения потребителей (они гарантированно завершатся, когда получат Z объектов или когда производство закончится)
-        for (Thread c : consumers) c.join();
-
-        // после того как все потребители завершили — можно подождать производителей (они завершят сами, когда суммарная потребность исчерпана)
-        for (Thread p : producers) p.join();
-
-        System.out.println("Все потоки завершены. Программа закончила работу.");
+        System.out.println("Все потоки (потребители) завершены. Программа завершает работу.");
     }
+}
 
-    // ========== Store (put/get) ==========
-    static class Store {
-        private final Deque<Integer> buffer = new ArrayDeque<>();
-        private final int capacity;
+class Store {
 
-        public Store(int capacity) {
-            this.capacity = capacity;
-        }
+    public final ArrayList<Integer> stockList = new ArrayList<Integer>();
+    public final int capacity = Main.D;
 
-        // put: кладёт один объект; если места нет — ждёт и показывает сообщение "Склад полон"
-        public synchronized void put(int value, String producer) throws InterruptedException {
-            while (buffer.size() == capacity) {
-                System.out.printf("[%s] Склад полон (на складе: %d/%d). Жду...%n", producer, buffer.size(), capacity);
-                wait();
-            }
-            buffer.addLast(value);
-            System.out.printf("[%s] Положил: %d (на складе: %d/%d)%n", producer, value, buffer.size(), capacity);
-            notifyAll();
-        }
-
-        // get: берёт один объект; если пусто — ждёт и показывает сообщение "Склад пуст".
-        // Если производителей уже нет и буфер пуст — возвращает null (сигнал для завершения потребителя).
-        public synchronized Integer get(String consumer, boolean producersAlive) throws InterruptedException {
-            while (buffer.isEmpty()) {
-                if (!producersAlive) {
-                    // производителей нет и буфер пуст — больше не придёт
-                    return null;
-                }
-                System.out.printf("[%s] Склад пуст. Жду...%n", consumer);
-                wait();
-            }
-            int v = buffer.removeFirst();
-            System.out.printf("[%s] Взял: %d (на складе: %d/%d)%n", consumer, v, buffer.size(), capacity);
-            notifyAll();
-            return v;
-        }
-
-        // для отладки/лога можно добавить метод вывода текущего содержимого (не обязателен)
-        public synchronized String snapshot() {
-            return buffer.toString();
-        }
-    }
-
-    // ========== Producer ==========
-    static class Producer implements Runnable {
-        private final String name;
-        private final Store store;
-        private final int batchSize; // F
-        private final AtomicInteger totalNeeded;
-        private final AtomicInteger producersAlive;
-        private final Random rnd = new Random();
-
-        public Producer(String name, Store store, int batchSize,
-                        AtomicInteger totalNeeded, AtomicInteger producersAlive) {
-            this.name = name;
-            this.store = store;
-            this.batchSize = batchSize;
-            this.totalNeeded = totalNeeded;
-            this.producersAlive = producersAlive;
-        }
-
-        @Override
-        public void run() {
+    public synchronized void get(String str) {
+        while (stockList.size() < 1) {
             try {
-                while (true) {
-                    // резервируем количество для производства (атомарно) — чтобы суммарно не превысить Y*Z
-                    int toProduce = reserveToProduce();
-                    if (toProduce <= 0) break;
-
-                    // генерируем toProduce нечётных чисел и кладём их по одному через put()
-                    for (int i = 0; i < toProduce; i++) {
-                        int odd = generateOdd();
-                        store.put(odd, name);
-                        // небольшая пауза, чтобы выходы логов были читаемы
-                        Thread.sleep(10 + rnd.nextInt(60));
-                    }
-                }
+                wait();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-            } finally {
-                int left = producersAlive.decrementAndGet();
-                // пробудим всех ожидающих, чтобы потребители могли завершиться, если буфер пуст
-                synchronized (store) {
-                    store.notifyAll();
-                }
-                System.out.printf("[%s] Завершил работу. Осталось производителей: %d%n", name, left);
+                return;
             }
         }
 
-        // атомарное резервирование: уменьшаем totalNeeded на take и возвращаем take
-        private int reserveToProduce() {
-            while (true) {
-                int need = totalNeeded.get();
-                if (need <= 0) return 0;
-                int take = Math.min(batchSize, need);
-                if (totalNeeded.compareAndSet(need, need - take)) {
-                    return take;
-                }
-                // иначе повторяем попытку
+        // Берём последнее число со склада
+        int item = stockList.get(stockList.size() - 1);
+        stockList.remove(stockList.size() - 1);
+
+        System.out.println(str + " взял со склада: " + item);
+
+        if (stockList.size() != 0) {
+            System.out.print("На складе имеется " + stockList.size() + " единиц -> ");
+            for (int v : stockList) {
+                System.out.print(v + " ");
             }
+            System.out.println();
+        } else {
+            System.out.println("Склад пуст");
         }
 
-        private int generateOdd() {
-            return rnd.nextInt(1000) * 2 + 1; // нечётное число
-        }
+        notifyAll();
     }
 
-    // ========== Consumer ==========
-    static class Consumer implements Runnable {
-        private final String name;
-        private final Store store;
-        private final int target; // Z
-        private final AtomicInteger producersAlive;
-        private final AtomicInteger totalNeeded; // не обязательно, но может быть полезно
-
-        public Consumer(String name, Store store, int target,
-                        AtomicInteger producersAlive, AtomicInteger totalNeeded) {
-            this.name = name;
-            this.store = store;
-            this.target = target;
-            this.producersAlive = producersAlive;
-            this.totalNeeded = totalNeeded;
-        }
-
-        @Override
-        public void run() {
-            int got = 0;
+    // put двух значений (как в примере)
+    public synchronized void put(String str, int a, int b) {
+        while (stockList.size() + 2 > capacity) {
+            System.out.println(">>> " + str + " хочет положить два числа, но склад ПОЛОН (" + stockList.size() + "/" + capacity + "). Ждёт...");
             try {
-                while (got < target) {
-                    boolean alive = producersAlive.get() > 0;
-                    Integer val = store.get(name, alive);
-                    if (val == null) {
-                        // буфер пуст и производителей нет — завершение
-                        break;
-                    }
-                    // потребляем объект
-                    got++;
-                    // эмуляция обработки
-                    Thread.sleep(40);
-                }
-                System.out.printf("[%s] Удовлетворён: получил %d/%d%n", name, got, target);
+                wait();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                return;
             }
         }
+
+        System.out.print(str + " поместил в хранилище два числа: ");
+        stockList.add(a);
+        System.out.print(stockList.get(stockList.size() - 1) + ", ");
+        stockList.add(b);
+        System.out.println(stockList.get(stockList.size() - 1));
+
+        if (stockList.size() != 0) {
+            System.out.print("На складе имеется " + stockList.size() + " единиц -> ");
+            for (int v : stockList) {
+                System.out.print(v + " ");
+            }
+            System.out.println();
+        } else {
+            System.out.println("Склад пуст");
+        }
+
+        notifyAll();
+    }
+}
+
+class Producer implements Runnable {
+
+    public final Store s;
+    public final Random rnd = new Random();
+    public final int[] oddNumbers = new int[]{1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
+
+    public Producer(Store s) {
+        this.s = s;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            int a = oddNumbers[rnd.nextInt(oddNumbers.length)];
+            int b = oddNumbers[rnd.nextInt(oddNumbers.length)];
+            s.put(Thread.currentThread().getName(), a, b);
+            // в примере не было pause, производители быстрые и daemon
+        }
+    }
+}
+
+class Consumer implements Runnable {
+
+    private final Store s;
+
+    public Consumer(Store s) {
+        this.s = s;
+    }
+
+    @Override
+    public void run() {
+        for (int i = 0; i < Main.Z; i++) {
+            s.get(Thread.currentThread().getName());
+        }
+        System.out.println(Thread.currentThread().getName() + " взял " + Main.Z + " числа. Поток завершен");
     }
 }
