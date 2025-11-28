@@ -6,14 +6,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
 
-    static final int X = 4;     // производители
-    static final int Y = 3;     // потребители
-    static final int Z = 50;    // сколько всего произвести и потребить
-    static final int D = 10;    // размер склада
-
+    static final int X = 4;
+    static final int Y = 3;
+    static final int Z = 50;
+    static final int D = 10;
 
     static final char[] VOWELS = {'a', 'e', 'i', 'o', 'u', 'y'};
-
 
     static class Depot {
         private final Deque<Character> buffer = new ArrayDeque<>(D);
@@ -29,13 +27,23 @@ public class Main {
         volatile boolean done = false;
 
 
+        private boolean fillPhase = true;
+
         void produce(String name) throws InterruptedException {
             lock.lock();
             try {
                 if (producedTotal >= Z) return;
 
+
+                while (!fillPhase) {
+                    System.out.println("Store is full");
+                    notFull.await();
+                }
+
                 while (buffer.size() == D) {
                     System.out.println(">>> Склад полон (" + buffer.size() + "/" + D + ")");
+                    fillPhase = false;
+                    notEmpty.signalAll();
                     notFull.await();
                 }
 
@@ -46,10 +54,10 @@ public class Main {
                 System.out.printf("%s произвел '%c' | Запас = %d/%d | total = %d%n",
                         name, c, buffer.size(), D, producedTotal);
 
-                notEmpty.signalAll();
 
-                if (producedTotal >= Z) {
-                    done = true;
+                if (buffer.size() == D) {
+                    fillPhase = false;
+                    notEmpty.signalAll();
                 }
 
             } finally {
@@ -57,13 +65,20 @@ public class Main {
             }
         }
 
-
         void consume(String name) throws InterruptedException {
             lock.lock();
             try {
 
+
+                while (fillPhase) {
+                    System.out.println("Store is empty");
+                    notEmpty.await();
+                }
+
                 while (buffer.isEmpty() && !done) {
                     System.out.println("<<< Склад пуст (0/" + D + ")");
+                    fillPhase = true;
+                    notFull.signalAll();
                     notEmpty.await();
                 }
 
@@ -75,7 +90,15 @@ public class Main {
                 System.out.printf("%s потребил '%c' | Запас = %d/%d | total = %d%n",
                         name, c, buffer.size(), D, consumedTotal);
 
-                notFull.signalAll();
+
+                if (buffer.isEmpty()) {
+                    fillPhase = true;
+                    notFull.signalAll();
+                }
+
+                if (consumedTotal >= Z) {
+                    done = true;
+                }
 
             } finally {
                 lock.unlock();
@@ -115,7 +138,7 @@ public class Main {
         @Override
         public void run() {
             try {
-                while (!depot.done || !Thread.interrupted()) {
+                while (!depot.done) {
                     depot.consume(getName());
                     Thread.sleep(120);
                 }
