@@ -1,163 +1,191 @@
-import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Main {
 
-    private static final int X = 10;
-    private static final int Y = 3;
-    private static final int Z = 3;
-    private static final int D = 5; 
+    private static final Object PRINT_LOCK = new Object();
+    private static final AtomicInteger eventCounter = new AtomicInteger(0);
 
-    public static void main(String[] args) throws InterruptedException {
+    static void log(String msg) {
+        synchronized (PRINT_LOCK) {
+            System.out.println("(" + eventCounter.incrementAndGet() + ") " + msg);
+        }
+    }
 
-        Store store = new Store(); 
+    private static final int BUFFER_CAPACITY = 2;  
+    private static final int PRODUCER_COUNT = 3;   
+    private static final int CONSUMER_COUNT = 3;   
+    private static final int CONSUMER_GOAL = 5;    
+    private static final int F = 2;              
 
-        Thread p1 = new Thread(new Producer(store), "Производитель №1");
-        p1.setDaemon(true);
-        Thread p2 = new Thread(new Producer(store), "Производитель №2");
-        p2.setDaemon(true);
-        Thread p3 = new Thread(new Producer(store), "Производитель №3");
-        p3.setDaemon(true);
-        Thread p4 = new Thread(new Producer(store), "Производитель №4");
-        p4.setDaemon(true);
-        Thread p5 = new Thread(new Producer(store), "Производитель №5");
-        p5.setDaemon(true);
-        Thread p6 = new Thread(new Producer(store), "Производитель №6");
-        p6.setDaemon(true);
-        Thread p7 = new Thread(new Producer(store), "Производитель №7");
-        p7.setDaemon(true);
-        Thread p8 = new Thread(new Producer(store), "Производитель №8");
-        p8.setDaemon(true);
-        Thread p9 = new Thread(new Producer(store), "Производитель №9");
-        p9.setDaemon(true);
-        Thread p10 = new Thread(new Producer(store), "Производитель №10");
-        p10.setDaemon(true);
+    private static final BlockingQueue<Integer> buffer =
+            new ArrayBlockingQueue<>(BUFFER_CAPACITY);
 
-        Thread c1 = new Thread(new Consumer(store), "Потребитель №1");
-        Thread c2 = new Thread(new Consumer(store), "Потребитель №2");
-        Thread c3 = new Thread(new Consumer(store), "Потребитель №3");
+    private static final int TOTAL_OBJECTS = CONSUMER_GOAL * CONSUMER_COUNT; 
 
-        p1.start();
-        p2.start();
-        p3.start();
-        p4.start();
-        p5.start();
-        p6.start();
-        p7.start();
-        p8.start();
-        p9.start();
-        p10.start();
+    private static final AtomicInteger totalProduced = new AtomicInteger(0);
+    private static final AtomicInteger totalConsumed = new AtomicInteger(0);
+    private static final AtomicInteger totalRemaining = new AtomicInteger(TOTAL_OBJECTS); 
+    private static final Map<Integer, AtomicInteger> consumerCounters = new ConcurrentHashMap<>();
+    private static final Map<Integer, AtomicInteger> producerCounters = new ConcurrentHashMap<>();
 
-        c1.start();
-        c2.start();
-        c3.start();
+    public static void main(String[] args) {
+        System.out.printf("Вариант: X=%d, Y=%d, Z=%d, D=%d, F=%d (объекты: нечётные числа)%n%n",
+                PRODUCER_COUNT, CONSUMER_COUNT, CONSUMER_GOAL, BUFFER_CAPACITY, F);
 
-        while (c1.isAlive() || c2.isAlive() || c3.isAlive()) {
-            Thread.sleep(50); 
+        for (int i = 0; i < CONSUMER_COUNT; i++) consumerCounters.put(i, new AtomicInteger(0));
+        for (int i = 0; i < PRODUCER_COUNT; i++) producerCounters.put(i, new AtomicInteger(0));
+
+        int totalTasks = PRODUCER_COUNT + CONSUMER_COUNT;
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(); 
+        ThreadFactory tf = new ThreadFactory() {
+            private final AtomicInteger idx = new AtomicInteger(0);
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, "pool-thread-" + idx.getAndIncrement());
+                t.setDaemon(false);
+                return t;
+            }
+        };
+
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                totalTasks,           
+                totalTasks,            
+                60L, TimeUnit.SECONDS, 
+                workQueue,
+                tf,
+                new ThreadPoolExecutor.AbortPolicy() 
+        );
+
+        for (int i = 0; i < PRODUCER_COUNT; i++) {
+            executor.execute(new Producer(i));
         }
 
-        System.out.println("Все потоки (потребители) завершены. Программа завершает работу.");
+        for (int i = 0; i < CONSUMER_COUNT; i++) {
+            executor.execute(new Consumer(i));
+        }
+
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
+                log("Executor не успел завершиться за 120 секунд, делаем shutdownNow()");
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        System.out.println("\n========== ИТОГОВЫЙ ОТЧЕТ ==========");
+        System.out.println("Запланировано объектoв (TOTAL_OBJECTS): " + TOTAL_OBJECTS);
+        System.out.println("Произведено (totalProduced): " + totalProduced.get());
+        System.out.println("Съедено (totalConsumed): " + totalConsumed.get());
+        System.out.println("\nПо потребителям:");
+        consumerCounters.forEach((id, count) ->
+                System.out.println("  Потребитель " + id + ": " + count.get() + " шт."));
+        System.out.println("\nПо производителям:");
+        producerCounters.forEach((id, count) ->
+                System.out.println("  Производитель " + id + ": " + count.get() + " шт."));
     }
-}
 
-class Store {
+    static class Producer implements Runnable {
+        private final int id;
+        private final Random rnd = new Random();
 
-    private final ArrayList<Integer> stockList = new ArrayList<Integer>();
-    private final int capacity = Main.D; // используем D из Main
+        Producer(int id) {
+            this.id = id;
+        }
 
-    public synchronized void get(String str) {
-        while (stockList.size() < 1) {
+        @Override
+        public void run() {
             try {
-                wait();
+                while (true) {
+                    int reserved = reserveBatch();
+                    if (reserved <= 0) {
+                        log("[P" + id + "] Нечего резервировать — выхожу");
+                        return;
+                    }
+
+                    for (int i = 0; i < reserved; i++) {
+                        int item = generateOdd();
+
+                        if (buffer.remainingCapacity() == 0) {
+                            log("[P" + id + "] Store FULL, waiting");
+                        }
+
+                        buffer.put(item);
+
+                        int prod = totalProduced.incrementAndGet();
+                        producerCounters.get(id).incrementAndGet();
+
+                        log("[P" + id + "] → сделал: " + item +
+                                " | producedTotal: " + prod +
+                                " | store: " + buffer.size() + "/" + BUFFER_CAPACITY);
+                    }
+
+                    Thread.sleep(60 + rnd.nextInt(80));
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return;
+                log("[P" + id + "] Прерван");
             }
         }
 
-        // Берём последнее число со склада
-        int item = stockList.get(stockList.size() - 1);
-        stockList.remove(stockList.size() - 1);
-
-        System.out.println(str + " взял со склада: " + item);
-
-        if (stockList.size() != 0) {
-            System.out.print("На складе имеется " + stockList.size() + " единиц -> ");
-            for (int v : stockList) {
-                System.out.print(v + " ");
+        private int reserveBatch() {
+            while (true) {
+                int remain = totalRemaining.get();
+                if (remain <= 0) return 0;
+                int take = Math.min(F, remain);
+                if (totalRemaining.compareAndSet(remain, remain - take)) {
+                    return take;
+                }
             }
-            System.out.println();
-        } else {
-            System.out.println("Склад пуст");
         }
 
-        notifyAll();
+        private int generateOdd() {
+            return rnd.nextInt(500) * 2 + 1;
+        }
     }
 
-    public synchronized void put(String str, int a, int b) {
-        while (stockList.size() + 2 > capacity) {
-            System.out.println(">>> " + str + " хочет положить два числа, но склад ПОЛОН (" + stockList.size() + "/" + capacity + "). Ждёт...");
+    static class Consumer implements Runnable {
+        private final int id;
+        private final Random rnd = new Random();
+
+        Consumer(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public void run() {
             try {
-                wait();
+                while (consumerCounters.get(id).get() < CONSUMER_GOAL) {
+
+                    if (buffer.isEmpty()) {
+                        log("[C" + id + "] Store EMPTY, waiting");
+                    }
+
+                    Integer item = buffer.take(); 
+
+                    consumerCounters.get(id).incrementAndGet();
+                    int consumed = totalConsumed.incrementAndGet();
+
+                    log("[C" + id + "] → съел: " + item +
+                            " | local: " + consumerCounters.get(id).get() +
+                            " | totalConsumed: " + consumed +
+                            " | store: " + buffer.size());
+
+                    Thread.sleep(40 + rnd.nextInt(30));
+                }
+
+                log("[C" + id + "] Насытились! (" + CONSUMER_GOAL + " объекта(ов))");
+
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return;
+                log("[C" + id + "] Прерван");
             }
         }
-
-        System.out.print(str + " поместил в хранилище два числа: ");
-        stockList.add(a);
-        System.out.print(stockList.get(stockList.size() - 1) + ", ");
-        stockList.add(b);
-        System.out.println(stockList.get(stockList.size() - 1));
-
-        if (stockList.size() != 0) {
-            System.out.print("На складе имеется " + stockList.size() + " единиц -> ");
-            for (int v : stockList) {
-                System.out.print(v + " ");
-            }
-            System.out.println();
-        } else {
-            System.out.println("Склад пуст");
-        }
-
-        notifyAll();
-    }
-}
-
-class Producer implements Runnable {
-
-    private final Store s;
-    private final Random rnd = new Random();
-    private final int[] oddNumbers = new int[]{1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
-
-    public Producer(Store s) {
-        this.s = s;
-    }
-
-    @Override
-    public void run() {
-        while (true) {
-            int a = oddNumbers[rnd.nextInt(oddNumbers.length)];
-            int b = oddNumbers[rnd.nextInt(oddNumbers.length)];
-            s.put(Thread.currentThread().getName(), a, b);
-        }
-    }
-}
-
-class Consumer implements Runnable {
-
-    private final Store s;
-
-    public Consumer(Store s) {
-        this.s = s;
-    }
-
-    @Override
-    public void run() {
-        for (int i = 0; i < Main.Z; i++) {
-            s.get(Thread.currentThread().getName());
-        }
-        System.out.println(Thread.currentThread().getName() + " взял " + Main.Z + " числа. Поток завершен");
     }
 }
