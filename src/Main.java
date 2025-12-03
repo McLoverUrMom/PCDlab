@@ -1,54 +1,163 @@
+import java.util.ArrayList;
 import java.util.Random;
-import java.util.Scanner;
 
 public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
 
-        Random random = new Random();
-        int mas[] = new int[100]; // массив случайных чисел
-        System.out.println("Создан массив с генерацией случайных чисел");
+    private static final int X = 10;
+    private static final int Y = 3;
+    private static final int Z = 3;
+    private static final int D = 5; 
 
-        for (int i = 0; i < 100; i++){
-            mas[i] = random.nextInt(100); // заполнение массива
+    public static void main(String[] args) throws InterruptedException {
+
+        Store store = new Store(); 
+
+        Thread p1 = new Thread(new Producer(store), "Производитель №1");
+        p1.setDaemon(true);
+        Thread p2 = new Thread(new Producer(store), "Производитель №2");
+        p2.setDaemon(true);
+        Thread p3 = new Thread(new Producer(store), "Производитель №3");
+        p3.setDaemon(true);
+        Thread p4 = new Thread(new Producer(store), "Производитель №4");
+        p4.setDaemon(true);
+        Thread p5 = new Thread(new Producer(store), "Производитель №5");
+        p5.setDaemon(true);
+        Thread p6 = new Thread(new Producer(store), "Производитель №6");
+        p6.setDaemon(true);
+        Thread p7 = new Thread(new Producer(store), "Производитель №7");
+        p7.setDaemon(true);
+        Thread p8 = new Thread(new Producer(store), "Производитель №8");
+        p8.setDaemon(true);
+        Thread p9 = new Thread(new Producer(store), "Производитель №9");
+        p9.setDaemon(true);
+        Thread p10 = new Thread(new Producer(store), "Производитель №10");
+        p10.setDaemon(true);
+
+        Thread c1 = new Thread(new Consumer(store), "Потребитель №1");
+        Thread c2 = new Thread(new Consumer(store), "Потребитель №2");
+        Thread c3 = new Thread(new Consumer(store), "Потребитель №3");
+
+        p1.start();
+        p2.start();
+        p3.start();
+        p4.start();
+        p5.start();
+        p6.start();
+        p7.start();
+        p8.start();
+        p9.start();
+        p10.start();
+
+        c1.start();
+        c2.start();
+        c3.start();
+
+        while (c1.isAlive() || c2.isAlive() || c3.isAlive()) {
+            Thread.sleep(50); 
         }
 
-        for (int i = 0; i < 100; i++) {
-            System.out.println("Случайно сгенерированные числа:" + mas[i]);
-        }
+        System.out.println("Все потоки (потребители) завершены. Программа завершает работу.");
+    }
+}
 
-        int choice = sc.nextInt();
-        switch(choice){
-                case 1:
-                   Thread thread1 = new Thread(new ThreadS1(mas));
-                   Thread thread2 = new Thread(new ThreadS2(mas));
-                    thread1.start();
-                    thread2.start();
+class Store {
 
-                    break;
-                case 2:
-                    Thread thread3 = new Thread(new ThreadL1(mas));
-                    thread3.start();
-                    Thread thread4 = new Thread(new ThreadL2(mas));
-                    thread4.start();
+    private final ArrayList<Integer> stockList = new ArrayList<Integer>();
+    private final int capacity = Main.D; // используем D из Main
 
-                    break;
-                default:
-                    System.out.println("Нет такого варианта");
-        }
-
-        String message = " Работу выполнили Лучицкий и Спринчан";
-        for (char ch : message.toCharArray()) {
-            System.out.print(ch);
+    public synchronized void get(String str) {
+        while (stockList.size() < 1) {
             try {
-                Thread.sleep(100);
+                wait();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.out.println("\nПоток был прерван");
-                break;
+                return;
             }
         }
-        System.out.println();
 
+        // Берём последнее число со склада
+        int item = stockList.get(stockList.size() - 1);
+        stockList.remove(stockList.size() - 1);
+
+        System.out.println(str + " взял со склада: " + item);
+
+        if (stockList.size() != 0) {
+            System.out.print("На складе имеется " + stockList.size() + " единиц -> ");
+            for (int v : stockList) {
+                System.out.print(v + " ");
+            }
+            System.out.println();
+        } else {
+            System.out.println("Склад пуст");
+        }
+
+        notifyAll();
+    }
+
+    public synchronized void put(String str, int a, int b) {
+        while (stockList.size() + 2 > capacity) {
+            System.out.println(">>> " + str + " хочет положить два числа, но склад ПОЛОН (" + stockList.size() + "/" + capacity + "). Ждёт...");
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+
+        System.out.print(str + " поместил в хранилище два числа: ");
+        stockList.add(a);
+        System.out.print(stockList.get(stockList.size() - 1) + ", ");
+        stockList.add(b);
+        System.out.println(stockList.get(stockList.size() - 1));
+
+        if (stockList.size() != 0) {
+            System.out.print("На складе имеется " + stockList.size() + " единиц -> ");
+            for (int v : stockList) {
+                System.out.print(v + " ");
+            }
+            System.out.println();
+        } else {
+            System.out.println("Склад пуст");
+        }
+
+        notifyAll();
+    }
+}
+
+class Producer implements Runnable {
+
+    private final Store s;
+    private final Random rnd = new Random();
+    private final int[] oddNumbers = new int[]{1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
+
+    public Producer(Store s) {
+        this.s = s;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            int a = oddNumbers[rnd.nextInt(oddNumbers.length)];
+            int b = oddNumbers[rnd.nextInt(oddNumbers.length)];
+            s.put(Thread.currentThread().getName(), a, b);
+        }
+    }
+}
+
+class Consumer implements Runnable {
+
+    private final Store s;
+
+    public Consumer(Store s) {
+        this.s = s;
+    }
+
+    @Override
+    public void run() {
+        for (int i = 0; i < Main.Z; i++) {
+            s.get(Thread.currentThread().getName());
+        }
+        System.out.println(Thread.currentThread().getName() + " взял " + Main.Z + " числа. Поток завершен");
     }
 }
